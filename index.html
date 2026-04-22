@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crisis Advisor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; height: 100vh; display: flex; flex-direction: column; }
+    @keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+    .msg { animation: fadeIn 0.2s ease forwards; }
+    ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+
+    /* Setup screen */
+    #setup { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; padding:24px; }
+    #setup .card { background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:32px; max-width:420px; width:100%; text-align:center; }
+    #setup .logo { width:56px;height:56px;border-radius:50%;background:#0f172a;display:flex;align-items:center;justify-content:center;margin:0 auto 16px; }
+    #setup h1 { font-size:20px;font-weight:600;color:#0f172a;margin-bottom:8px; }
+    #setup p { font-size:13px;color:#64748b;margin-bottom:24px;line-height:1.6; }
+    #setup input { width:100%;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:14px;color:#1e293b;background:#f8fafc;margin-bottom:12px;font-family:inherit; }
+    #setup input:focus { outline:none;border-color:#94a3b8; }
+    #setup button { width:100%;background:#0f172a;color:#fff;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit; }
+    #setup button:hover { background:#1e3a5f; }
+    #setup .hint { font-size:11px;color:#94a3b8;margin-top:12px; }
+    #setup a { color:#3b82f6;text-decoration:none; }
+
+    /* Chat screen */
+    #chat { display:none; flex-direction:column; height:100vh; }
+    .header { background:#0f172a;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0; }
+    .header-logo { width:38px;height:38px;border-radius:50%;background:#1e293b;border:1.5px solid #334155;display:flex;align-items:center;justify-content:center; }
+    .header h2 { color:#f1f5f9;font-weight:600;font-size:15px; }
+    .header p { color:#475569;font-size:12px; }
+    .header-right { margin-left:auto;display:flex;align-items:center;gap:12px; }
+    .dot { width:7px;height:7px;border-radius:50%;background:#22c55e; }
+    .online { color:#475569;font-size:12px; }
+    .new-btn { background:none;border:none;color:#64748b;font-size:12px;cursor:pointer;font-family:inherit; }
+    .new-btn:hover { color:#ef4444; }
+
+    .messages { flex:1;overflow-y:auto;padding:20px 16px;max-width:720px;width:100%;margin:0 auto; }
+
+    .welcome { text-align:center;padding:32px 0 24px; }
+    .welcome-logo { width:60px;height:60px;border-radius:50%;background:#0f172a;display:flex;align-items:center;justify-content:center;margin:0 auto 16px; }
+    .welcome h3 { font-size:20px;font-weight:600;color:#0f172a;margin-bottom:8px; }
+    .welcome .sub { font-size:14px;color:#64748b;margin-bottom:32px;max-width:300px;margin-left:auto;margin-right:auto; }
+    .starters { display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:520px;margin:0 auto; }
+    .starter { background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:12px;color:#334155;cursor:pointer;text-align:left;line-height:1.5;transition:all 0.15s;font-family:inherit; }
+    .starter:hover { background:#f0f9ff;border-color:#7dd3fc; }
+
+    .bubble-row { display:flex;margin-bottom:16px; }
+    .bubble-row.user { justify-content:flex-end; }
+    .bubble-row.bot { justify-content:flex-start; }
+    .avatar { width:32px;height:32px;border-radius:50%;background:#0f172a;border:1.5px solid #1e3a5f;display:flex;align-items:center;justify-content:center;margin-right:10px;flex-shrink:0;margin-top:2px; }
+    .bubble { max-width:80%;padding:13px 16px;font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word; }
+    .bubble.user { background:#0f172a;color:#f1f5f9;border-radius:18px 18px 4px 18px;padding:10px 14px; }
+    .bubble.bot { background:#fff;color:#1e293b;border:1px solid #e2e8f0;border-radius:4px 18px 18px 18px; }
+    .typing { background:#fff;border:1px solid #e2e8f0;border-radius:4px 18px 18px 18px;padding:13px 16px;display:flex;gap:4px; }
+    .dot-anim { width:6px;height:6px;border-radius:50%;background:#94a3b8;animation:bounce 1.2s infinite; }
+    .error-box { background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:13px;color:#dc2626;margin-bottom:16px; }
+
+    .input-area { background:#fff;border-top:1px solid #e2e8f0;padding:12px 16px;flex-shrink:0; }
+    .input-inner { max-width:720px;margin:0 auto; }
+    .input-hint { font-size:11px;color:#94a3b8;text-align:center;margin-bottom:8px; }
+    .input-row { display:flex;gap:10px;align-items:flex-end; }
+    textarea { flex:1;border:1px solid #e2e8f0;border-radius:12px;padding:10px 14px;font-size:14px;resize:none;font-family:inherit;color:#1e293b;background:#f8fafc;line-height:1.5;transition:border-color 0.15s; }
+    textarea:focus { outline:none;border-color:#94a3b8; }
+    .send { width:44px;height:44px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:background 0.15s; }
+    .send:disabled { background:#e2e8f0;cursor:default; }
+    .send:not(:disabled) { background:#0f172a; }
+    .send:not(:disabled):hover { background:#1e3a5f; }
+    .input-footer { font-size:11px;color:#cbd5e1;text-align:center;margin-top:8px; }
+  </style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup">
+  <div class="card">
+    <div class="logo">
+      <span style="color:#4ade80;font-weight:700;font-size:24px;font-family:Georgia,serif">C</span>
+    </div>
+    <h1>Crisis Advisor</h1>
+    <p>AI-powered crisis management for managers under pressure.<br/>Enter your free Gemini API key to get started.</p>
+    <input type="password" id="apiKeyInput" placeholder="Paste your Gemini API key (AIza...)" />
+    <button onclick="startApp()">Start Advising</button>
+    <div class="hint">
+      Get a free key at <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → Get API Key → Create API Key
+    </div>
+  </div>
+</div>
+
+<!-- CHAT SCREEN -->
+<div id="chat">
+  <div class="header">
+    <div class="header-logo">
+      <span style="color:#4ade80;font-weight:700;font-size:16px;font-family:Georgia,serif">C</span>
+    </div>
+    <div>
+      <h2>Crisis Advisor</h2>
+      <p>AI-powered · For managers under pressure</p>
+    </div>
+    <div class="header-right">
+      <button class="new-btn" onclick="resetChat()">New crisis</button>
+      <div style="display:flex;align-items:center;gap:5px">
+        <div class="dot"></div>
+        <span class="online">Online</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-logo">
+        <span style="color:#4ade80;font-weight:700;font-size:26px;font-family:Georgia,serif">C</span>
+      </div>
+      <h3>What is the crisis?</h3>
+      <p class="sub">Describe what is happening right now. Get a full diagnosis and action plan in seconds.</p>
+      <div class="starters">
+        <button class="starter" onclick="sendMsg('A chemical explosion near our factory has halted all operations')">A chemical explosion near our factory has halted all operations</button>
+        <button class="starter" onclick="sendMsg('Our product just went viral on social media for the wrong reasons')">Our product just went viral on social media for the wrong reasons</button>
+        <button class="starter" onclick="sendMsg('Industrial waste from our facility has polluted a nearby river')">Industrial waste from our facility has polluted a nearby river</button>
+        <button class="starter" onclick="sendMsg('A data breach just exposed our customer information')">A data breach just exposed our customer information</button>
+        <button class="starter" onclick="sendMsg('A key supplier shut down overnight with no warning')">A key supplier shut down overnight with no warning</button>
+        <button class="starter" onclick="sendMsg('Employee protest has blocked our factory entrance')">Employee protest has blocked our factory entrance</button>
+      </div>
+    </div>
+    <div id="msgList"></div>
+    <div id="bottom"></div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-inner">
+      <div class="input-hint" id="followHint" style="display:none">Ask follow-up questions — I stay in context of your crisis</div>
+      <div class="input-row">
+        <textarea id="input" rows="2" placeholder="Describe what is happening right now..." onkeydown="handleKey(event)"></textarea>
+        <button class="send" id="sendBtn" onclick="sendMsg()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M22 2L11 13" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-footer">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SYSTEM = `You are a senior crisis management advisor with 20+ years of experience. You help managers inside companies navigate active crises — fast, specific, and strategic.
+
+When a manager describes their crisis situation, respond with a tight, structured plan in this exact format:
+
+🔴 CRISIS DIAGNOSIS
+List 3 key risks. Each: risk name in caps — one sharp sentence on why it matters beyond the obvious.
+
+⚡ IMMEDIATE ACTIONS (0–72 hours)
+3 specific, realistic actions. No vague advice. Name who does what by when.
+
+📅 SHORT-TERM PLAN (1–2 weeks)
+3 actions. Focus on stabilisation and stakeholder management.
+
+📣 COMMUNICATION STRATEGY
+Internal: one specific action for employees.
+External: one specific action for customers/public/government.
+Never say this publicly: [complete with one specific line to avoid].
+
+Keep responses concise and direct. You are advising someone under real time pressure. No academic language. No filler.`;
+
+let apiKey = '';
+let history = [];
+let loading = false;
+
+function startApp() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { alert('Please enter your API key.'); return; }
+  apiKey = key;
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('chat').style.display = 'flex';
+}
+
+document.getElementById('input').addEventListener('input', function() {
+  document.getElementById('sendBtn').disabled = !this.value.trim() || loading;
+});
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+
+function scrollBottom() {
+  document.getElementById('bottom').scrollIntoView({ behavior: 'smooth' });
+}
+
+function addBubble(role, content) {
+  const list = document.getElementById('msgList');
+  const row = document.createElement('div');
+  row.className = `bubble-row msg ${role}`;
+  if (role === 'bot') {
+    row.innerHTML = `
+      <div class="avatar"><span style="color:#4ade80;font-weight:700;font-size:13px;font-family:Georgia,serif">C</span></div>
+      <div class="bubble bot">${content}</div>`;
+  } else {
+    row.innerHTML = `<div class="bubble user">${content}</div>`;
+  }
+  list.appendChild(row);
+  scrollBottom();
+}
+
+function showTyping() {
+  const list = document.getElementById('msgList');
+  const row = document.createElement('div');
+  row.className = 'bubble-row bot';
+  row.id = 'typing';
+  row.innerHTML = `
+    <div class="avatar"><span style="color:#4ade80;font-weight:700;font-size:13px;font-family:Georgia,serif">C</span></div>
+    <div class="typing">
+      <div class="dot-anim" style="animation-delay:0s"></div>
+      <div class="dot-anim" style="animation-delay:0.2s"></div>
+      <div class="dot-anim" style="animation-delay:0.4s"></div>
+    </div>`;
+  list.appendChild(row);
+  scrollBottom();
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+function showError(msg) {
+  const list = document.getElementById('msgList');
+  const div = document.createElement('div');
+  div.className = 'error-box';
+  div.textContent = msg;
+  list.appendChild(div);
+  scrollBottom();
+}
+
+async function sendMsg(text) {
+  const inputEl = document.getElementById('input');
+  const userText = (text || inputEl.value).trim();
+  if (!userText || loading) return;
+
+  inputEl.value = '';
+  loading = true;
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('welcome').style.display = 'none';
+  document.getElementById('followHint').style.display = 'block';
+
+  addBubble('user', userText);
+  history.push({ role: 'user', parts: [{ text: userText }] });
+  showTyping();
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM }] },
+          contents: history,
+          generationConfig: { maxOutputTokens: 1000 }
+        })
+      }
+    );
+    const data = await res.json();
+    removeTyping();
+
+    if (data.error) {
+      showError('API error: ' + data.error.message);
+    } else {
+      const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+      history.push({ role: 'model', parts: [{ text: reply }] });
+      addBubble('bot', reply);
+    }
+  } catch (e) {
+    removeTyping();
+    showError('Connection failed: ' + e.message);
+  }
+
+  loading = false;
+  document.getElementById('sendBtn').disabled = !inputEl.value.trim();
+  inputEl.focus();
+}
+
+function resetChat() {
+  history = [];
+  document.getElementById('msgList').innerHTML = '';
+  document.getElementById('welcome').style.display = 'block';
+  document.getElementById('followHint').style.display = 'none';
+}
+</script>
+</body>
+</html>
